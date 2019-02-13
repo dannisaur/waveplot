@@ -38,6 +38,18 @@ export class WaveformComponent implements OnInit {
 
     });
 
+    d3.select('button.pause').on('click', function() {
+      d3.select("line").interrupt();
+    });
+    
+    d3.select('button.continue').on('click', function() {
+     d3.select("line").transition()
+        .ease(d3.easeLinear)
+        .duration(359 * 1000)
+        .attr("x1",1795)
+        .attr("x2",1795);
+    }).dispatch('click');
+
   }
 
   splitChannelData(data) {
@@ -46,7 +58,7 @@ export class WaveformComponent implements OnInit {
     let right_channel = [];
     let left_flag = true;
     while (data.length > 0) {
-      
+
       if (left_flag === true) {
         left_channel.push(data.splice(0, 2));
         left_flag = !left_flag;
@@ -57,7 +69,7 @@ export class WaveformComponent implements OnInit {
       }
     }
 
-    return [this.flattenArray(left_channel), this.flattenArray(right_channel)];
+    return [left_channel, right_channel];
 
   }
 
@@ -66,20 +78,20 @@ export class WaveformComponent implements OnInit {
   }
 
   calculateTimeScale() {
-    let size = Math.ceil(this.call_length / 30) + 1;
+    let size = Math.ceil(this.call_length / 30);
     let tick_values = [];
     for (let i = 0; i < size; i++) {
-      tick_values.push(Math.round(i * 30 * 7.82));
+      tick_values.push(this.convertToHHmmss(Math.round(i * 30)));
     }
     return tick_values;
   }
 
   convertToHHmmss(duration) {
-    var s = ( duration % 60 == 0 ) ? '00' : Math.floor( (duration) % 60 );
-    var m = Math.floor( (duration / 60) % 60 );
+    var s = (duration % 60 == 0) ? '00' : Math.floor((duration) % 60);
+    var m = Math.floor((duration / 60) % 60);
 
     if (duration > 3600) {
-      var h = Math.floor( (duration/(60 * 60)) % 24 );
+      var h = Math.floor((duration / (60 * 60)) % 24);
       return h + ':' + m + ':' + s + '';
     } else {
       return m + ':' + s + '';
@@ -88,21 +100,30 @@ export class WaveformComponent implements OnInit {
 
   drawWaveform(data, dom, color) {
 
+    let tick_size = Math.round(30 * 7.82);
+
     let width = this.call_length * 5;
-    let height = 100;
+    let height = 75;
 
     var node = d3.select(dom).append("svg")
       .attr("class", "chart")
       .attr("width", width)
       .attr("height", height);
 
-    var y = d3.scaleLinear().range([height, -height]);
-    var max_val = d3.max(data, function (d) { return d; });
-    y.domain([-max_val, max_val]);
-    var x = d3.scaleLinear().domain([0, data.length]);
-    var bar_width = width / data.length;
+    var max_val = d3.max(data, function (d) { return Math.abs(d[1] - d[0]); });
+    var y = d3.scaleLinear().domain([-max_val, max_val]).range([height, -height]);
+    // var x = d3.scaleLinear().domain([0, this.data_length]);
+    var bar_width = width / this.data_length;
 
     var chart = node.attr("width", width).attr("height", height);
+    chart.append('line')
+      .style('stroke', 'black')
+      // .style('stroke-width', '5px')
+      .attr('x1', 0)
+      .attr('x2', 0)
+      .attr('y1', 5)
+      .attr('y2', height)
+      // .attr("transform", "translate(0, 50)")
 
     var bar = chart.selectAll("g")
       .data(data)
@@ -114,34 +135,63 @@ export class WaveformComponent implements OnInit {
 
     bar.append("rect")
       .attr("y", function (d) {
-        var yv = height - Math.abs(y(d) / 2) - height / 2 + 2;
-        return yv;
+        return height - Math.abs(y(d[1] - d[0]) / 2) - height / 2 + 2;
       })
       .attr("height", function (d) {
-        return Math.abs(y(d));
+        return Math.abs(y(d[1] - d[0]));
       })
       .attr("width", bar_width);
 
     chart.style('fill', color);
 
-    let ticks = this.calculateTimeScale();
-    // let ticks_label = ticks[1];
-    // console.log(ticks);
-    let scale = d3.scaleLinear()
-      .domain([0, this.data_length]).range([0, d3.max(data)]);
-    console.log(this.data_length);
+    let scale = d3.scaleLinear().domain([0, this.data_length]).range([0, max_val])
 
-    var axis = d3.axisBottom()
-      .tickValues(ticks)
-      .tickFormat((d, i) => {
-        console.log(d);
-        return this.convertToHHmmss(i * 20);
-      })
-      .scale(scale);
+    let labels = this.calculateTimeScale();
+    console.log("labels: " + labels);
+    // let scale = d3.scaleBand()
+    //   // .domain(labels)
+    //   .range([0, width])
+    //   // .round(true)
+    //   .paddingOuter(1);
 
-    node.append('g')
-      .attr('transform', 'translate(0,80)')
-      .call(axis);
+    console.log("data length: " + this.data_length);
+
+    /*
+    var xAxis = d3.axisBottom()
+      .scale(scale)
+      .ticks(1)
+
+    bar.append("g")
+      .attr('transform', 'translate(0, 55)')
+      .attr("class", "axis")
+      .call(xAxis)
+      .select(".domain").remove();
+
+    d3.selectAll(".tick")
+      .style("display", function (d, i) {
+        return i % tick_size ? "none" : "initial"
+      });
+
+    */
+
+    // var w = 500, h = 100;
+    /*var svg = d3.select("scale")
+      .append("svg")
+      .attr("width", width)
+      .attr("height", height);
+
+    var scale2 = d3.scaleBand()
+      .domain("ABCDEFGHIJKL".split(""))
+      .range([20, width - 20])
+      .paddingOuter(0)
+
+    var axis = d3.axisBottom(scale2);
+
+    var gX = svg.append("g")
+      .attr("transform", "translate(0,50)")
+      .call(axis)
+    */
+
   }
 
 }
