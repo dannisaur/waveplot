@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import * as d3 from 'd3';
-import * as moment from 'moment';
 
 @Component({
   selector: 'app-waveform',
@@ -31,13 +30,14 @@ export class WaveformComponent implements OnInit {
       let channelsData = this.splitChannelData(this.data);
 
       //left channel
-      this.drawWaveform(channelsData[0], '.waveform', 'blue');
+      this.drawWaveform(channelsData[0], '.waveform', '#66CCFF');
 
-      // right channel
-      this.drawWaveform(channelsData[1], '.rwaveform', 'green');
+      // create the time axis
+      this.drawAxis();
 
     });
 
+    // cursor animation
     d3.select('button.pause').on('click', function() {
       d3.select("line").interrupt();
     });
@@ -46,8 +46,8 @@ export class WaveformComponent implements OnInit {
      d3.select("line").transition()
         .ease(d3.easeLinear)
         .duration(359 * 1000)
-        .attr("x1",1795)
-        .attr("x2",1795);
+        .attr("x1",900)
+        .attr("x2",900);
     }).dispatch('click');
 
   }
@@ -73,59 +73,62 @@ export class WaveformComponent implements OnInit {
 
   }
 
-  flattenArray(array) {
-    return array.reduce((acc, val) => acc.concat(val), []);
-  }
+  // flattenArray(array) {
+  //   return array.reduce((acc, val) => acc.concat(val), []);
+  // }
 
+  // calculates the time labels for the call based on the call length
   calculateTimeScale() {
     let size = Math.ceil(this.call_length / 30);
     let tick_values = [];
     for (let i = 0; i < size; i++) {
-      tick_values.push(this.convertToHHmmss(Math.round(i * 30)));
+      tick_values.push(this.secondsToHms(Math.round(i * 30)));
     }
     return tick_values;
   }
 
-  convertToHHmmss(duration) {
-    var s = (duration % 60 == 0) ? '00' : Math.floor((duration) % 60);
-    var m = Math.floor((duration / 60) % 60);
+secondsToHms(d) {
+  d = Number(d);
 
-    if (duration > 3600) {
-      var h = Math.floor((duration / (60 * 60)) % 24);
-      return h + ':' + m + ':' + s + '';
-    } else {
-      return m + ':' + s + '';
-    }
+  var h = Math.floor(d / 3600);
+  var m = Math.floor(d % 3600 / 60);
+  var s = Math.floor(d % 3600 % 60);
+
+  if (h == 0) {
+    return ('0' + m).slice(-2) + ":" + ('0' + s).slice(-2);
+  } else {
+    return ('0' + h).slice(-2) + ":" + ('0' + m).slice(-2) + ":" + ('0' + s).slice(-2);
   }
+}
 
   drawWaveform(data, dom, color) {
 
-    let tick_size = Math.round(30 * 7.82);
-
-    let width = this.call_length * 5;
+    let width = 900;
     let height = 75;
 
-    var node = d3.select(dom).append("svg")
+    // create the svg object
+    let node = d3.select(dom).append("svg")
       .attr("class", "chart")
       .attr("width", width)
       .attr("height", height);
 
-    var max_val = d3.max(data, function (d) { return Math.abs(d[1] - d[0]); });
-    var y = d3.scaleLinear().domain([-max_val, max_val]).range([height, -height]);
-    // var x = d3.scaleLinear().domain([0, this.data_length]);
-    var bar_width = width / this.data_length;
+    // setting max value, y scale, and bar width
+    let max_val = d3.max(data, function (d) { return Math.abs(d[1] - d[0]); });
+    let y = d3.scaleLinear().domain([-max_val, max_val]).range([height, -height]);
+    let bar_width = width / this.data_length;
 
-    var chart = node.attr("width", width).attr("height", height);
+    let chart = node.attr("width", width).attr("height", height);
+
+    // create a cursor to indicate audio location
     chart.append('line')
       .style('stroke', 'black')
-      // .style('stroke-width', '5px')
+      .style('stroke-width', '2px')
       .attr('x1', 0)
       .attr('x2', 0)
       .attr('y1', 5)
       .attr('y2', height)
-      // .attr("transform", "translate(0, 50)")
 
-    var bar = chart.selectAll("g")
+    let bar = chart.selectAll("g")
       .data(data)
       .enter()
       .append("g")
@@ -133,6 +136,7 @@ export class WaveformComponent implements OnInit {
         return "translate(" + i * bar_width + ",0)";
       });
 
+    // for every pair of min and max, plot the bar
     bar.append("rect")
       .attr("y", function (d) {
         return height - Math.abs(y(d[1] - d[0]) / 2) - height / 2 + 2;
@@ -142,56 +146,31 @@ export class WaveformComponent implements OnInit {
       })
       .attr("width", bar_width);
 
+    // color the chart
     chart.style('fill', color);
 
-    let scale = d3.scaleLinear().domain([0, this.data_length]).range([0, max_val])
+  }
 
+  // function to draw an axis for the waveform
+  drawAxis() {
     let labels = this.calculateTimeScale();
-    console.log("labels: " + labels);
-    // let scale = d3.scaleBand()
-    //   // .domain(labels)
-    //   .range([0, width])
-    //   // .round(true)
-    //   .paddingOuter(1);
+    let scale = d3.scaleBand()
+      .domain(labels)
+      .range([0, 900])
+      .paddingOuter(0);
 
-    console.log("data length: " + this.data_length);
-
-    /*
-    var xAxis = d3.axisBottom()
-      .scale(scale)
-      .ticks(1)
-
-    bar.append("g")
-      .attr('transform', 'translate(0, 55)')
-      .attr("class", "axis")
-      .call(xAxis)
-      .select(".domain").remove();
-
-    d3.selectAll(".tick")
-      .style("display", function (d, i) {
-        return i % tick_size ? "none" : "initial"
-      });
-
-    */
-
-    // var w = 500, h = 100;
-    /*var svg = d3.select("scale")
+    let svg = d3.select(".time-axis")
       .append("svg")
-      .attr("width", width)
-      .attr("height", height);
+      .attr("width", 900)
+      .attr("height", 20);
 
-    var scale2 = d3.scaleBand()
-      .domain("ABCDEFGHIJKL".split(""))
-      .range([20, width - 20])
-      .paddingOuter(0)
+    let axis = d3.axisBottom(scale);
 
-    var axis = d3.axisBottom(scale2);
-
-    var gX = svg.append("g")
-      .attr("transform", "translate(0,50)")
+    svg.append("g")
+      // .attr("transform", "translate(0,50)")
       .call(axis)
-    */
-
+      .select(".domain").remove();
+    
   }
 
 }
