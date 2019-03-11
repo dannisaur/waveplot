@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "gjallarhorn": {
+    "waveplot": {
       "root": "",
       "sourceRoot": "src",
       "projectType": "application",
@@ -17,7 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "dist/gjallarhorn",
+            "outputPath": "dist/waveplot",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": "src/polyfills.ts",
@@ -41,7 +41,7 @@
               ],
               "optimization": true,
               "outputHashing": "all",
-              "sourceMap": false,
+              "sourceMap": true,
               "extractCss": true,
               "namedChunks": false,
               "aot": true,
@@ -61,18 +61,18 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "gjallarhorn:build"
+            "browserTarget": "waveplot:build"
           },
           "configurations": {
             "production": {
-              "browserTarget": "gjallarhorn:build:production"
+              "browserTarget": "waveplot:build:production"
             }
           }
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "gjallarhorn:build"
+            "browserTarget": "waveplot:build"
           }
         },
         "test": {
@@ -106,7 +106,7 @@
         }
       }
     },
-    "gjallarhorn-e2e": {
+    "waveplot-e2e": {
       "root": "e2e/",
       "projectType": "application",
       "prefix": "",
@@ -115,11 +115,11 @@
           "builder": "@angular-devkit/build-angular:protractor",
           "options": {
             "protractorConfig": "e2e/protractor.conf.js",
-            "devServerTarget": "gjallarhorn:serve"
+            "devServerTarget": "waveplot:serve"
           },
           "configurations": {
             "production": {
-              "devServerTarget": "gjallarhorn:serve:production"
+              "devServerTarget": "waveplot:serve:production"
             }
           }
         },
@@ -135,5 +135,5 @@
       }
     }
   },
-  "defaultProject": "gjallarhorn"
+  "defaultProject": "waveplot"
 }
